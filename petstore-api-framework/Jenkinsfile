@@ -1,34 +1,57 @@
 pipeline {
     agent any
 
+    tools {
+        // Make sure Maven and JDK are installed in Jenkins Global Tools
+        maven 'Maven'   // Name of Maven installation in Jenkins
+        jdk 'JDK 17'    // Name of JDK installation in Jenkins
+    }
+
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/SuvarnaWadne/petstore-api-automation.git'
+                git(
+                    url: 'https://github.com/SuvarnaWadne/petstore-api-automation.git',
+                    branch: 'main',
+                    credentialsId: 'github-pat'
+                )
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'mvn clean install -DskipTests'
+                echo 'Installing dependencies...'
+                // Replace with your actual dependency installation command
+                bat 'mvn clean install -DskipTests'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'mvn clean test'
+                echo 'Running TestNG tests...'
+                bat 'mvn test'
             }
         }
 
         stage('Publish TestNG Report') {
             steps {
-                publishHTML(target: [
-                    reportDir: 'test-output',
-                    reportFiles: 'index.html',
-                    reportName: 'TestNG Report'
-                ])
+                echo 'Publishing TestNG report...'
+                // Use the Jenkins TestNG plugin to publish results
+                publishTestNGResults testResults: 'test-output/testng-results.xml'
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check console output.'
         }
     }
 }
