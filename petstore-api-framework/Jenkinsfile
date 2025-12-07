@@ -13,52 +13,33 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat "mvn clean install -DskipTests"
+                bat 'mvn clean install -DskipTests'
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat "mvn test"
+                bat 'mvn test'
             }
         }
 
-        stage('Publish TestNG Results') {
+        stage('Publish TestNG Report') {
             steps {
-                echo "Publishing TestNG XML report..."
-                junit 'test-output/testng-results.xml'
+                publishTestNGResults testResults: 'target/surefire-reports/testng-results.xml'
             }
         }
 
-        stage('Publish HTML Report') {
+        stage('Archive Reports for Client') {
             steps {
-                echo "Publishing TestNG HTML Report..."
-                publishHTML target: [
-                    reportDir: 'test-output',
-                    reportFiles: 'index.html',
-                    reportName: 'TestNG HTML Report'
-                ]
+                archiveArtifacts artifacts: 'target/surefire-reports/**/*.xml', allowEmptyArchive: false
+                archiveArtifacts artifacts: 'test-output/**', allowEmptyArchive: true
             }
         }
-
-        stage('Archive Screenshots / Reports') {
-            steps {
-                echo "Archiving screenshots and reports..."
-                archiveArtifacts artifacts: 'test-output/**/*.*', allowEmptyArchive: true
-            }
-        }
-
     }
 
     post {
         always {
-            echo "Pipeline Finished"
-        }
-        success {
-            echo "All Tests Passed!"
-        }
-        failure {
-            echo "Some Tests Failed!"
+            echo "Pipeline execution completed!"
         }
     }
 }
