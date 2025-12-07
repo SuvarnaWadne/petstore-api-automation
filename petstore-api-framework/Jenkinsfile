@@ -1,35 +1,26 @@
 pipeline {
     agent any
 
-    tools {
-        // Make sure Maven and JDK are installed in Jenkins Global Tools
-        maven 'Maven'   // Name of Maven installation in Jenkins
-        jdk 'JDK 17'    // Name of JDK installation in Jenkins
-    }
-
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git(
+                git branch: 'main',
                     url: 'https://github.com/SuvarnaWadne/petstore-api-automation.git',
-                    branch: 'main',
-                    credentialsId: 'github-pat'
-                )
+                    credentialsId: 'github-pat-credentials'
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 echo 'Installing dependencies...'
-                // Replace with your actual dependency installation command
                 bat 'mvn clean install -DskipTests'
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Running TestNG tests...'
+                echo 'Running test cases...'
                 bat 'mvn test'
             }
         }
@@ -37,21 +28,39 @@ pipeline {
         stage('Publish TestNG Report') {
             steps {
                 echo 'Publishing TestNG report...'
-                // Use the Jenkins TestNG plugin to publish results
-                publishTestNGResults testResults: 'test-output/testng-results.xml'
+
+                // Publish TestNG results (this enables TestNG Results tab)
+                publishTestNGResults patterns: [[pattern: 'test-output/testng-results.xml']]
+            }
+        }
+
+        stage('Publish JUnit Report (optional backup)') {
+            steps {
+                // Some TestNG frameworks also output JUnit XML
+                junit '**/test-output/*.xml'
+            }
+        }
+
+        stage('Archive Artifacts (for client)') {
+            steps {
+                echo 'Archiving screenshots and HTML reports...'
+
+                // Archive HTML reports, screenshots, logs, etc.
+                archiveArtifacts artifacts: 'test-output/**', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'screenshots/**', allowEmptyArchive: true
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline finished.'
+            echo "Pipeline finished execution"
         }
         success {
-            echo 'Pipeline completed successfully!'
+            echo "All tests passed. You can download reports from Jenkins Artifacts."
         }
         failure {
-            echo 'Pipeline failed. Check console output.'
+            echo "Tests failed. Please review artifacts for debugging."
         }
     }
 }
