@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/SuvarnaWadne/petstore-api-automation.git',
@@ -13,54 +13,52 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo 'Installing dependencies...'
-                bat 'mvn clean install -DskipTests'
+                bat "mvn clean install -DskipTests"
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Running test cases...'
-                bat 'mvn test'
+                bat "mvn test"
             }
         }
 
-        stage('Publish TestNG Report') {
+        stage('Publish TestNG Results') {
             steps {
-                echo 'Publishing TestNG report...'
-
-                // Publish TestNG results (this enables TestNG Results tab)
-                publishTestNGResults patterns: [[pattern: 'test-output/testng-results.xml']]
+                echo "Publishing TestNG XML report..."
+                junit 'test-output/testng-results.xml'
             }
         }
 
-        stage('Publish JUnit Report (optional backup)') {
+        stage('Publish HTML Report') {
             steps {
-                // Some TestNG frameworks also output JUnit XML
-                junit '**/test-output/*.xml'
+                echo "Publishing TestNG HTML Report..."
+                publishHTML target: [
+                    reportDir: 'test-output',
+                    reportFiles: 'index.html',
+                    reportName: 'TestNG HTML Report'
+                ]
             }
         }
 
-        stage('Archive Artifacts (for client)') {
+        stage('Archive Screenshots / Reports') {
             steps {
-                echo 'Archiving screenshots and HTML reports...'
-
-                // Archive HTML reports, screenshots, logs, etc.
-                archiveArtifacts artifacts: 'test-output/**', allowEmptyArchive: true
-                archiveArtifacts artifacts: 'screenshots/**', allowEmptyArchive: true
+                echo "Archiving screenshots and reports..."
+                archiveArtifacts artifacts: 'test-output/**/*.*', allowEmptyArchive: true
             }
         }
+
     }
 
     post {
         always {
-            echo "Pipeline finished execution"
+            echo "Pipeline Finished"
         }
         success {
-            echo "All tests passed. You can download reports from Jenkins Artifacts."
+            echo "All Tests Passed!"
         }
         failure {
-            echo "Tests failed. Please review artifacts for debugging."
+            echo "Some Tests Failed!"
         }
     }
 }
